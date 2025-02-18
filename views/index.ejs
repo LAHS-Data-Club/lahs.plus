@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../styles.css">
+<body>
+  
+  <!-- come up with names -->
+  <a href="/courses">courses</a>
+  <form action="/canvas" method="POST">
+    <label for="proxy">Proxy: </label>
+    <input required type="text" id="proxy" name="proxy" value="cors-anywhere.herokuapp.com">
+    <label for="token">Token: </label>
+    <input required type="text" id="token" name="token">
+    <button type="submit">Authorize Canvas</button>
+  </form>
+  <form action="/authtest" method="POST">
+    <button type="submit">Authorize Classroom</button>
+  </form>
+  <form action="/unauthorize" method="POST">
+    <button type="submit">Unauthorize</button>
+  </form>
+  <p>idk if we want it all to be one button for canvas/classroom auth</p>
+
+</body>
+</html>

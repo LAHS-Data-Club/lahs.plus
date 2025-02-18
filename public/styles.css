@@ -1,0 +1,31 @@
+* {
+  font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+  gap: 10px;
+  border: solid rgb(209, 209, 209);
+  padding: 10px;
+}
+
+input {
+  border: 2px solid gray;
+}
+
+form > button {
+  background-color: teal;
+  width: 50%;
+  border: none;
+  padding: 10px;
+  border-radius: 7px;
+  align-self: center;
+  color: white;
+  cursor: pointer;
+}
+
+a {
+  color: teal;
+}
