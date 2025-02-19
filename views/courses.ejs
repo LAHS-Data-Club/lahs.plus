@@ -3,12 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
 
-  <h3>Courses</h3>
-  <div class="courses">
+  <div>Courses</div>
+  <a href="/">back</a>
 
+  <div class="courses">
+    <% canvasData && canvasData.forEach(course => { %>
+      <div><%= course.name %></div>
+    <% }); %>
+    
+    <% classroomData && classroomData.forEach(course => { %>
+      <div><%= course.name %></div>
+    <% }); %>
   </div>
 
 </body>

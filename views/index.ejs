@@ -6,22 +6,32 @@
   <link rel="stylesheet" href="../styles.css">
 <body>
   
-  <!-- come up with names -->
+  <!-- come up with better names for all the actions -->
   <a href="/courses">courses</a>
-  <form action="/canvas" method="POST">
-    <label for="proxy">Proxy: </label>
-    <input required type="text" id="proxy" name="proxy" value="cors-anywhere.herokuapp.com">
-    <label for="token">Token: </label>
-    <input required type="text" id="token" name="token">
-    <button type="submit">Authorize Canvas</button>
-  </form>
-  <form action="/authtest" method="POST">
-    <button type="submit">Authorize Classroom</button>
-  </form>
-  <form action="/unauthorize" method="POST">
-    <button type="submit">Unauthorize</button>
-  </form>
-  <p>idk if we want it all to be one button for canvas/classroom auth</p>
+
+  <% if (locals.canvasAuth) { %>
+    <form action="/canvas_unauth" method="POST">
+      <button type="submit">Unauthorize Canvas</button>
+    </form>
+  <% } else { %>
+    <form action="/canvas" method="POST">
+      <label for="proxy">Proxy: </label>
+      <input required type="text" id="proxy" name="proxy" value="cors-anywhere.herokuapp.com">
+      <label for="token">Token: </label>
+      <input required type="text" id="token" name="token">
+      <button type="submit">Authorize Canvas</button>
+    </form>
+  <% } %>
+  
+  <% if (locals.classroomAuth) { %>
+    <form action="/classroom_unauth" method="POST">
+      <button type="submit">Unauthorize Classroom</button>
+    </form>
+  <% } else { %>
+    <form action="/authtest" method="POST">
+      <button type="submit">Authorize Classroom</button>
+    </form>
+  <% } %>
 
 </body>
 </html>

@@ -1,10 +1,9 @@
 const express = require('express');
 const app = express();
 const path = require("node:path");
-// const { generateURl } = require('./classroom'); // refactor later
-const { getCanvasData } = require('./canvas');
 const url = require('url');
 require("dotenv").config();
+const { getCanvasData } = require('./canvas');
 
 app.use(express.urlencoded({ extended: true }));
 app.set("views", path.join(__dirname, "views"));
@@ -12,17 +11,11 @@ app.set("view engine", "ejs");
 const assetsPath = path.join(__dirname, "public");
 app.use(express.static(assetsPath));
 
-// const session = require('express-session');
-// app.use(session({
-//   secret: 'your_secure_secret_key', // shhhh
-//   resave: false,
-//   saveUninitialized: false,
-// }));
-
-// REFACTOR LATERs
+/// bad code below lol
 const { google } = require('googleapis');
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 
-// client id, client secret, redirect uri
 const oauth2Client = new google.auth.OAuth2(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET, 
@@ -30,69 +23,93 @@ const oauth2Client = new google.auth.OAuth2(
 );
 const SCOPES = ['https://www.googleapis.com/auth/classroom.courses.readonly'];
 
-function generateURl() {
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline', 
-    scope: SCOPES,
-    include_granted_scopes: true, // what does this do
-  });
-  return authUrl;
-}
-// REFACTOR LATER
-
 app.post('/authtest', async (req, res, next) => {
-  // canvas stuff
-  const token = req.body.token;
-  const proxy = req.body.proxy || 'cors-anywhere.herokuapp.com'; 
-  const canvasData = await getCanvasData(proxy, token); // how do i forward thisdata
-  req.canvasData = canvasData; // not sure if this is how it works
-
-  const authUrl = generateURl();
-  res.redirect(authUrl); 
+  const authUrl = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES
+  });
+  console.log(authUrl);
+  res.redirect(authUrl);
 });
 
-app.get('/oauth2callback', async (req, res, next) => {
+app.get('/oauth2callback', async (req, res) => {
   let q = url.parse(req.url, true).query; 
   if (q.error) { 
     console.log('Error:' + q.error);
-  } else { // Get access and refresh tokens (if access_type is offline)
-    let { tokens } = await oauth2Client.getToken(q.code); // this is the token; store this + canvas token local storage for now ig?
+  } else { 
+    let { tokens } = await oauth2Client.getToken(q.code);
+    res.cookie('refresh_token', tokens.refresh_token, {
+      httpOnly: true,
+      secure: true,
+      maxAge: 1000 * 60 * 60 * 24, // figure out expiration // how to deal with this
+    }); 
     oauth2Client.setCredentials(tokens);
-    const classroom = google.classroom({version: 'v1'});
+    const classroom = google.classroom({version: 'v1'}); // again, turn this into a function
     const response = await classroom.courses.list({
       auth: oauth2Client,
       courseStates: ["ACTIVE"]
     });
     const courses = response.data.courses;
-    console.log(courses);
+    console.log(courses)
     res.redirect('/');
   }
 }); 
 
-app.get('/authtest', (req, res) => res.render('authtest'));
-app.get('/', (req, res) => {
-  res.render('index');
-});
-app.get('/courses', (req, res) => {
-  res.render('courses');
+app.get('/', async (req, res) => {
+  let classroomAuth = !!req.cookies.refresh_token;
+  let canvasAuth = !!req.cookies.canvas_token;
+  res.render('index', { classroomAuth, canvasAuth });
 });
 
+app.get('/courses', async (req, res) => {
+  try {
+    // add something in case bad token so it doesnt jsut error
+    // idk deal with this later lol
+    // classroom data
+    oauth2Client.setCredentials({
+      refresh_token: req.cookies.refresh_token,
+    });
+    const classroom = google.classroom({version: 'v1'}); // should turn this into a function
+    const response = await classroom.courses.list({
+      auth: oauth2Client,
+      courseStates: ["ACTIVE"]
+    });
+    const classroomData = response.data.courses;
+    // canvas data
+    const canvasData = await getCanvasData(req.cookies.canvas_proxy, req.cookies.canvas_token);
 
-// app.post('/', async (req, res, next) => {
-  // const token = '10497~M86Rm7h2TtXxmfauTNPQ4HXJrmE8ZhufYuU2Qr3WcQR6xryxH7avzzGK8kr89nn2';
-  // const proxy = req.body.proxy || 'cors-anywhere.herokuapp.com'; 
+    console.log(canvasData);
+    console.log(classroomData);
 
-  // try {
-  //   const classroomData = await getClassroomData();
-  //   const canvasData = await getCanvasData(proxy, token);
-  //   console.log(classroomData);
-  //   console.log(canvasData);
-  //   res.render('index', { classroomData, canvasData } );
-  // } catch(err) {
-  //   console.log(err);
-  //   next(err);
-  // }  
-// });
+    res.render('courses', { canvasData, classroomData });
+  } catch(err) {
+    console.log(err);
+    next(err);
+  }  
+});
+
+app.post('/canvas', (req, res, next) => {
+  const token = req.body.token; 
+  const proxy = req.body.proxy || 'cors-anywhere.herokuapp.com'; 
+  // ig can take out as cookieoptions uhhh
+  res.cookie('canvas_token', token, {
+    httpOnly: true,
+    secure: true,
+    maxAge: 1000 * 60 * 60 * 24, // figure out expiration // how to deal with this
+  }); 
+  res.cookie('canvas_proxy', proxy, {
+    httpOnly: true,
+    secure: true,
+    maxAge: 1000 * 60 * 60 * 24, // figure out expiration // how to deal with this
+  }); 
+  res.redirect('/');
+});
+
+app.post('/canvas_unauth', (req, res, next) => {
+  res.clearCookie('canvas_proxy');
+  res.clearCookie('canvas_token');
+  res.redirect('/');
+});
 
 const PORT = 3000;
 app.listen(PORT, () => console.log(`listening on port ${PORT}`));
